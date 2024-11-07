@@ -1,3 +1,2 @@
-export const greet = (name: string): string => {
-  return `Hello, ${name}!`;
-}; 
+export * from './language/detector'
+export * from './language/translator'

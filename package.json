@@ -1,0 +1,31 @@
+{
+  "name": "@rejax/browser-ai",
+  "version": "0.0.1",
+  "description": "A toolkit of browser built-in AI API, including Prompt API, Translation API, Write API, Summarize API, etc.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prepare": "npm run build",
+    "pb": "npm publish --access public"
+  },
+  "keywords": [
+    "browser",
+    "ai",
+    "prompt",
+    "translation",
+    "write",
+    "summarize"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JaxNext/browser-ai-toolkit.git"
+  },
+  "author": "Jax <https://github.com/JaxNext>",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "typescript": "^5.3.0"
+  }
+} 

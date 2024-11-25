@@ -50,7 +50,8 @@ export async function genTranslator({ sourceLanguage, targetLanguage }: Translat
     }
   }
 
-  return await apiRoot[createFuncName]({ sourceLanguage, targetLanguage })
+  const translator = await apiRoot[createFuncName]({ sourceLanguage, targetLanguage })
+  return translator
 }
 
 export async function translate({ text, sourceLanguage, targetLanguage }: TranslationRequest): Promise<string | undefined> {

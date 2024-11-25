@@ -1,7 +1,7 @@
 /// <reference lib="dom" />
 
 // Define a type for the session
-let session: { promptStreaming: (text: string) => Promise<any> } | null = null;
+let session: { promptStreaming: (text: string, params?: any) => Promise<any> } | null = null;
 
 // Define the AIInterface type
 interface AIInterface {
@@ -51,7 +51,7 @@ export async function genSession(params?: any) {
   return session;
 }
 
-export async function promptStreaming(text: string) {
+export async function promptStreaming(text: string, params?: any) {
   if (!session) {
     session = await genSession();
   }
@@ -60,7 +60,7 @@ export async function promptStreaming(text: string) {
     throw new Error("Failed to initialize session.");
   }
 
-  const stream = await session.promptStreaming(text);
+  const stream = await session.promptStreaming(text, params);
   return stream;
 }
 

@@ -35,10 +35,10 @@ export function getScope(scope: Scope | undefined): AIScope | undefined {
     return self?.ai;
   }
   // auto detect
-  if (chrome?.aiOriginTrial) {
-    return chrome.aiOriginTrial;
+  if (self?.ai?.languageModel) {
+    return self.ai;
   }
-  return self?.ai;
+  return chrome.aiOriginTrial;
 }
 
 interface UsabilityResult {

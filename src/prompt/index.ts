@@ -1,54 +1,70 @@
 /// <reference lib="dom" />
 
+interface AIModel {
+  create: (params?: any) => Promise<any>;
+  capabilities: () => Promise<{ available: string }>;
+}
+
+interface AIScope {
+  languageModel: AIModel;
+  capabilities: () => Promise<{ available: string }>;
+}
+
+declare const chrome: {
+  aiOriginTrial?: AIScope;
+};
+
+declare const self: {
+  ai?: AIScope;
+};
+
+enum Scope {
+  Self = 'self',
+  Chrome = 'chrome',
+}
+
 // Define a type for the session
 let session: { promptStreaming: (text: string, params?: any) => Promise<any> } | null = null;
 
-// Define the AIInterface type
-interface AIInterface {
-  languageModel?: {
-    capabilities: () => Promise<{ available: string }>;
-  };
-  assistant?: {
-    capabilities: () => Promise<{ available: string }>;
-  };
+export function getScope(scope: Scope | undefined): AIScope | undefined {
+  // specify scope
+  if (scope) {
+    if (scope === Scope.Chrome) {
+      return chrome.aiOriginTrial;
+    }
+    return self?.ai;
+  }
+  // auto detect
+  if (chrome?.aiOriginTrial) {
+    return chrome.aiOriginTrial;
+  }
+  return self?.ai;
 }
 
-// Assume ai is of type AIInterface
-declare const ai: AIInterface;
+interface UsabilityResult {
+  available: boolean;
+  model: AIModel | null;
+}
 
-async function checkUsability() {
-  let obj = {
+async function checkUsability(scope?: Scope): Promise<UsabilityResult> {
+  let obj: UsabilityResult = {
     available: false,
-    apiPath: [] as string[], // Correct the type to string[]
-    createFuncName: '',
+    model: null,
   };
-
-  if (ai?.languageModel?.capabilities) {
-    const res = await ai.languageModel.capabilities();
-    obj.available = res?.available === 'readily';
-    obj.apiPath = ['ai', 'languageModel'];
-    obj.createFuncName = 'create';
-    console.log('ai.languageModel', res);
-  } else if (ai?.assistant?.capabilities) {
-    const res = await ai.assistant.capabilities();
-    obj.available = res?.available === 'readily';
-    obj.apiPath = ['ai', 'assistant'];
-    obj.createFuncName = 'create';
-    console.log('ai.assistant', res);
-  }
+  const aiScope = getScope(scope);
+  if (!aiScope) return obj;
+  const model = aiScope.languageModel;
+  const capabilities = await model.capabilities();
+  obj.available = capabilities?.available === 'readily';
+  obj.model = model;
   return obj;
 }
 
-export async function genSession(params?: any) {
-  const { available, apiPath, createFuncName } = await checkUsability();
-  if (!available) throw new Error(`当前浏览器不支持 ${apiPath.join('.')}`);
-  let apiRoot: any = window;
-  for (let i = 0; i < apiPath.length; i++) {
-    const path = apiPath[i];
-    apiRoot = apiRoot[path];
-  }
-  session = await apiRoot[createFuncName](params);
-  return session;
+export async function genSession(params?: any): Promise<{ promptStreaming: (text: string, params?: any) => Promise<any> } | null> {
+  const { available, model } = await checkUsability();
+  if (!available || !model) return null;
+  const newSession = await model.create?.(params);
+  return newSession || null;
 }
 
 export async function promptStreaming(text: string, params?: any) {
@@ -56,9 +72,7 @@ export async function promptStreaming(text: string, params?: any) {
     session = await genSession();
   }
 
-  if (!session) {
-    throw new Error("Failed to initialize session.");
-  }
+  if (!session) throw new Error("Failed to initialize session.");
 
   const stream = await session.promptStreaming(text, params);
   return stream;

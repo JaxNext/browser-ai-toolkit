@@ -1,47 +1,50 @@
 /// <reference lib="dom" />
+
+declare global {
+  interface Window {
+    LanguageDetector?: LanguageDetector;
+  }
+}
+
+interface LanguageDetector {
+  availability: () => Promise<string>;
+  create: () => Promise<LanguageDetector>;
+  detect: (text: string) => Promise<Array<{ detectedLanguage: string; confidence: number }>>;
+}
+
 // Define detector type
 let detector: LanguageDetector | null = null;
 
-interface UsabilityResult {
+interface AvailabilityResult {
   available: boolean;
-  apiPath: string[];
-  createFuncName: string;
+  message: string;
 }
 
-async function checkUsability(): Promise<UsabilityResult> {
-  let obj: UsabilityResult = {
+async function checkAvailability(): Promise<AvailabilityResult> {
+  let obj: AvailabilityResult = {
     available: false,
-    apiPath: [],
-    createFuncName: '',
+    message: '',
   }
   
-  if (ai?.languageDetector?.capabilities) {
-    const res = await ai.languageDetector?.capabilities()
-    obj.available = res?.available === 'readily'
-    obj.apiPath = ['ai', 'languageDetector']
-    obj.createFuncName = 'create'
-    console.log('ai.languageDetector', res)
-  } else if (translation?.canDetect) {
-    const res = await translation.canDetect()
-    obj.available = res === 'readily'
-    obj.apiPath = ['translation']
-    obj.createFuncName = 'createDetector'
-    console.log('translation', res)
+  const res = await self?.LanguageDetector?.availability?.()
+  if (res === 'unavailable') {
+    obj.message = '当前浏览器不支持，请升级到最新版本或检查配置'
+  } else if (res !== 'available') {
+    obj.message = '模型加载中，请稍后再试试'
+  } else {
+    obj.available = true
   }
   return obj
 }
 
 async function genDetector(): Promise<LanguageDetector> {
-  const { available, apiPath, createFuncName } = await checkUsability()
-  if (!available) throw new Error(`当前浏览器不支持 ${apiPath.join('.')} 语言检测`)
+  const { available, message } = await checkAvailability()
+  if (!available) throw new Error(message)
   
-  // Type the apiRoot properly
-  let apiRoot: any = window
-  for (let i = 0; i < apiPath.length; i++) {
-    const path = apiPath[i]
-    apiRoot = apiRoot[path]
+  if (!self.LanguageDetector?.create) {
+    throw new Error('Language detector creation method not available')
   }
-  return await apiRoot[createFuncName]()
+  return await self.LanguageDetector.create()
 }
 
 interface DetectResult {
@@ -53,11 +56,14 @@ export async function detect(text: string): Promise<DetectResult> {
   detector = detector || (await genDetector())
 
   const result = await detector.detect(text)
-  const defaultLang = 'en'
-  if (!result?.length) return { text: defaultLang, value: defaultLang }
+  const defaultStr = 'unknown'
+  if (!result?.length) return {
+    text: defaultStr,
+    value: defaultStr,
+  }
   
   const mostLikely = result.sort((a, b) => b.confidence - a.confidence)[0]
-  const lang = mostLikely?.detectedLanguage || defaultLang
+  const lang = mostLikely?.detectedLanguage || defaultStr
 
   return {
     text: lang,
@@ -65,4 +71,4 @@ export async function detect(text: string): Promise<DetectResult> {
   }
 }
 
-export const checkDetectorUsability = checkUsability
+export const checkDetectorAvailability = checkAvailability

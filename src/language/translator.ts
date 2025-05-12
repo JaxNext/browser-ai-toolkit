@@ -1,57 +1,60 @@
+/// <reference lib="dom" />
 declare global {
   interface Window {
-    translation: any;
+    Translator: Translator;
   }
 }
 
-import type { TranslationResult, TranslationParams, TranslationRequest, Translator } from '../types/translator'
+interface TranslationParams {
+  sourceLanguage: string
+  targetLanguage: string
+}
+
+interface Translator {
+  availability: () => Promise<string>
+  create: (params: TranslationParams) => Promise<Translator>
+  translate: (text: string) => Promise<string>
+}
 
 let translator: Translator | null = null
-const translation = window.translation
 
-async function checkUsability({ sourceLanguage, targetLanguage }: TranslationParams): Promise<TranslationResult> {
-  let obj: TranslationResult = {
+interface AvailabilityResult {
+  available: boolean;
+  message: string;
+}
+
+async function checkAvailability({ sourceLanguage, targetLanguage }: TranslationParams): Promise<AvailabilityResult> {
+  let obj: AvailabilityResult = {
     available: false,
-    apiPath: '',
-    createFuncName: '',
+    message: '',
   }
 
-  if (!translation?.canTranslate) {
-    obj.msg = '当前浏览器不支持 translation API'
-    return obj
-  }
+  const res = await self?.Translator?.availability?.()
 
-  const res = await translation.canTranslate({
-    sourceLanguage,
-    targetLanguage,
-  })
-
-  obj.available = res === 'readily'
-  obj.apiPath = ['translation']
-  obj.createFuncName = 'createTranslator'
-  obj.canFuncName = 'canTranslate'
-
-  if (!obj.available) {
-    obj.msg = '当前浏览器不支持该语种翻译'
+  if (res === 'unavailable') {
+    obj.message = '当前浏览器不支持，请升级到最新版本或检查配置'
+  } else if (res !== 'available') {
+    obj.message = '模型加载中，请稍后再试试'
+  } else {
+    obj.available = true
   }
 
   return obj
 }
 
 export async function genTranslator({ sourceLanguage, targetLanguage }: TranslationParams): Promise<Translator> {
-  const { available, apiPath, createFuncName, msg } = await checkUsability({ sourceLanguage, targetLanguage })
+  const { available, message } = await checkAvailability({ sourceLanguage, targetLanguage })
   
-  if (!available) throw new Error(msg)
+  if (!available) throw new Error(message)
 
-  let apiRoot: any = window
-  if (Array.isArray(apiPath)) {
-    for (const path of apiPath) {
-      apiRoot = apiRoot[path]
-    }
+  if (!self.Translator?.create) {
+    throw new Error('Translator creation method not available')
   }
+  return await self.Translator.create({ sourceLanguage, targetLanguage })
+}
 
-  const translator = await apiRoot[createFuncName]({ sourceLanguage, targetLanguage })
-  return translator
+interface TranslationRequest extends TranslationParams {
+  text: string
 }
 
 export async function translate({ text, sourceLanguage, targetLanguage }: TranslationRequest): Promise<string | undefined> {
@@ -60,8 +63,4 @@ export async function translate({ text, sourceLanguage, targetLanguage }: Transl
   return await translator.translate(text)
 }
 
-export async function updateTranslator({ sourceLanguage, targetLanguage }: TranslationParams): Promise<void> {
-  translator = await genTranslator({ sourceLanguage, targetLanguage })
-}
-
-export const checkTranslatorUsability = checkUsability
+export const checkTranslatorAvailability = checkAvailability

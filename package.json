@@ -1,6 +1,6 @@
 {
   "name": "@rejax/browser-ai",
-  "version": "0.0.16",
+  "version": "0.0.17",
   "description": "A toolkit of browser built-in AI API, including Prompt API, Translation API, Write API, Summarize API, etc.",
   "main": "dist/index.js",
   "module": "dist/index.js",

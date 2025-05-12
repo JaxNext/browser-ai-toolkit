@@ -63,4 +63,8 @@ export async function translate({ text, sourceLanguage, targetLanguage }: Transl
   return await translator.translate(text)
 }
 
+export async function updateTranslator({ sourceLanguage, targetLanguage }: TranslationParams): Promise<void> {
+  translator = await genTranslator({ sourceLanguage, targetLanguage })
+}
+
 export const checkTranslatorAvailability = checkAvailability

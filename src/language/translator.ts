@@ -11,7 +11,7 @@ interface TranslationParams {
 }
 
 interface Translator {
-  availability: () => Promise<string>
+  availability: (params: TranslationParams) => Promise<string>
   create: (params: TranslationParams) => Promise<Translator>
   translate: (text: string) => Promise<string>
 }
@@ -29,7 +29,7 @@ async function checkAvailability({ sourceLanguage, targetLanguage }: Translation
     message: '',
   }
 
-  const res = await self?.Translator?.availability?.()
+  const res = await self?.Translator?.availability?.({ sourceLanguage, targetLanguage })
 
   if (res === 'unavailable') {
     obj.message = '当前浏览器不支持，请升级到最新版本或检查配置'

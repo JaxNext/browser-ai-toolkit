@@ -37,7 +37,7 @@ async function checkAvailability(): Promise<AvailabilityResult> {
   return obj
 }
 
-async function genDetector(): Promise<LanguageDetector> {
+export async function genDetector(): Promise<LanguageDetector> {
   const { available, message } = await checkAvailability()
   if (!available) throw new Error(message)
   
